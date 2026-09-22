@@ -5,14 +5,13 @@ The page checks the backend connection through `GET /api/health/`.
 
 ## First-time setup
 
-Install Python 3.12+ and Node.js 22.12+ (including npm). Open a terminal in
-the extracted `XC_Tracker-Dev` folder.
+Install Python 3.12+ and Node.js 22.12+ (including npm).
 
 **macOS / Linux**
 
 ```sh
 python3 -m venv .venv
-.venv/bin/python -m pip install -r backend/requirements.txt
+.venv/bin/python -m pip install -r XC_Tracker/backend/requirements.txt
 npm --prefix frontend ci
 ```
 

@@ -7,6 +7,8 @@ import Nav from "react-bootstrap/Nav";
 import Spinner from "react-bootstrap/Spinner";
 import { Link, Outlet, useLocation, useOutletContext, useParams } from "react-router-dom";
 import { useRecordings } from "../state/RecordingsContext.jsx";
+
+
 export default function RecordingLayout() {
     const { id } = useParams();
     const { recordings, ready, busy, rename } = useRecordings();
@@ -14,11 +16,14 @@ export default function RecordingLayout() {
     const location = useLocation();
     const [showRename, setShowRename] = useState(false);
     const [name, setName] = useState("");
+
+
     if (!recording)
         return !ready ? <Spinner animation="border" role="status" aria-label="Loading recording"/> : <>
     <h1 className="mb-4">Recording not found</h1>
     <Link to="/recordings" className="btn btn-outline-primary">Recordings</Link>
   </>;
+  
     return <>
     <Link to="/recordings" className="back-link">← Recordings</Link>
     <div className="page-heading recording-heading">

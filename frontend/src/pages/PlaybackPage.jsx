@@ -11,8 +11,6 @@ import { RoutePlot, SpeedPlot } from "../components/TrackPlots.jsx";
 import { usePlayback } from "../hooks/usePlayback.js";
 import { sampleAtTime } from "../lib/playback.js";
 import { duration, speedMph, feet, utc } from "../lib/format.js";
-
-
 function Player({ recording }) {
     const [params] = useSearchParams();
     const { points, summary } = recording;

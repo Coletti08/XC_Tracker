@@ -2,6 +2,8 @@ import Card from "react-bootstrap/Card";
 import Col from "react-bootstrap/Col";
 import Row from "react-bootstrap/Row";
 import { duration, miles, pacePerMile } from "../lib/format.js";
+
+
 export default function RecordingMetrics({ recording }) {
     const { summary, points } = recording;
     const metrics = [

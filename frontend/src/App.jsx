@@ -9,9 +9,6 @@ import DataPage from "./pages/DataPage.jsx";
 import PlaybackPage from "./pages/PlaybackPage.jsx";
 import RecordingsPage from "./pages/RecordingsPage.jsx";
 import { RecordingsProvider, useRecordings } from "./state/RecordingsContext.jsx";
-
-
-
 function Dashboard() {
     const { errors, dismissErrors } = useRecordings();
     const { pathname } = useLocation();
@@ -37,8 +34,6 @@ function Dashboard() {
     </Container>
   </>;
 }
-
-
 export default function App() {
     return <BrowserRouter><RecordingsProvider><Dashboard /></RecordingsProvider></BrowserRouter>;
 }

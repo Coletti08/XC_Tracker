@@ -32,42 +32,34 @@ def main():
         ([str(python), "manage.py", "runserver", "127.0.0.1:8000", "--noreload"], ROOT / "backend"),
         (frontend, ROOT / "frontend"),
     ]
-
     processes = []
     exit_code = 0
     print(f"Starting XC Tracker at {URL}. Ctrl+C stops both servers.", flush=True)
-
     try:
         for command, cwd in commands:
             options = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {"start_new_session": True}
             processes.append(subprocess.Popen(command, cwd=cwd, **options))
         ready = False
         started = time.monotonic()
-
         while True:
             if any(process.poll() is not None for process in processes):
                 print("A server stopped. Check its output above (ports 5173 and 8000 must be free).")
                 exit_code = 1
                 break
-
             if not ready:
                 try:
                     with urlopen(f"{URL}/api/health/", timeout=0.5) as response:
                         ready = response.status == 200
                 except (URLError, TimeoutError, ConnectionError):
                     pass
-
-
                 if ready:
                     print(f"Ready: {URL}", flush=True)
                     if not args.no_browser:
                         webbrowser.open(URL)
-
                 elif time.monotonic() - started > 30:
                     print("Startup timed out. Check the server output above.")
                     exit_code = 1
                     break
-                
             time.sleep(0.25)
     except KeyboardInterrupt:
         print("\nStopping XC Tracker…")

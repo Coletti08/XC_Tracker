@@ -15,6 +15,7 @@ def health(request):
 @require_POST
 def import_recording(request):
     upload = request.FILES.get("file")
+    if upload is None:
         return JsonResponse({"error": "Choose a CSV file to import."}, status=400)
     if not upload.name.lower().endswith(".csv"):
         return JsonResponse({"error": "Choose a .csv file. Unzip Sensor Logger exports first, then select Location.csv."}, status=400)

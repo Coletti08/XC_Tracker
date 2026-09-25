@@ -2,14 +2,20 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { SAMPLE_RECORDING } from "../data/sample-recording.js";
 import { importRecording } from "../lib/api.js";
 import { deleteRecording, loadRecordings, saveRecording } from "../lib/storage.js";
+
+
 const MAX_IMPORTS = 8;
 const Context = createContext(null);
+
+
 export function RecordingsProvider({ children }) {
     const [imports, setImports] = useState([]);
     const [ready, setReady] = useState(false);
     const [busy, setBusy] = useState(false);
     const [errors, setErrors] = useState([]);
     const lock = useRef(false);
+
+
     useEffect(() => {
         let active = true;
         loadRecordings().then((saved) => {
@@ -22,15 +28,19 @@ export function RecordingsProvider({ children }) {
             setReady(true); });
         return () => { active = false; };
     }, []);
+
+
     async function importFiles(files) {
         if (!ready || lock.current || !files.length)
             return;
+
         lock.current = true;
         setBusy(true);
         setErrors([]);
         const added = [];
         const failures = [];
         const capacity = Math.max(0, MAX_IMPORTS - imports.length);
+
         if (files.length > capacity)
             failures.push(`Maximum ${MAX_IMPORTS} imported recordings. Remove a recording to add more.`);
         try {
@@ -54,16 +64,20 @@ export function RecordingsProvider({ children }) {
             setImports((previous) => [...previous, ...added]);
             setErrors(failures);
         }
+
         finally {
             lock.current = false;
             setBusy(false);
         }
     }
+
     async function remove(id) {
         if (id === SAMPLE_RECORDING.id || lock.current)
             return;
+
         lock.current = true;
         setBusy(true);
+
         try {
             await deleteRecording(id);
             setImports((previous) => previous.filter((recording) => recording.id !== id));
@@ -77,11 +91,14 @@ export function RecordingsProvider({ children }) {
         }
     }
     async function rename(id, name) {
+
         const recording = imports.find((item) => item.id === id);
         if (!recording || lock.current || !name.trim())
             return false;
+
         lock.current = true;
         setBusy(true);
+
         try {
             const updated = { ...recording, name: name.trim().slice(0, 80) };
             await saveRecording(updated);
@@ -97,8 +114,10 @@ export function RecordingsProvider({ children }) {
             setBusy(false);
         }
     }
+
     return <Context.Provider value={{ recordings: [SAMPLE_RECORDING, ...imports], ready, busy, errors, dismissErrors: () => setErrors([]), importFiles, remove, rename }}>{children}</Context.Provider>;
 }
+
 export function useRecordings() {
     const context = useContext(Context);
     if (!context)

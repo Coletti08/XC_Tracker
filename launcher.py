@@ -25,6 +25,14 @@ def main():
     if not npm:
         parser.exit(1, "Install Node.js 22.12+ with npm, then open a new terminal.\n")
 
+    database = subprocess.run(
+        [str(python), "manage.py", "migrate", "--noinput"],
+        cwd=ROOT / "backend",
+        check=False,
+    )
+    if database.returncode:
+        parser.exit(1, "Could not prepare the tracker database. Check the output above.\n")
+
     frontend = [npm, "run", "dev"]
     if os.name == "nt":
         frontend = [os.environ.get("COMSPEC", "cmd.exe"), "/c", *frontend]

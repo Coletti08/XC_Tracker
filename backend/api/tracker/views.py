@@ -1,5 +1,6 @@
 import json
 
+from django.db import transaction
 from django.db.models import Count, Q
 from django.http import JsonResponse, StreamingHttpResponse
 from django.views.decorators.http import require_GET, require_POST
@@ -122,3 +123,17 @@ def download_session(request, session_id):
     result["Content-Disposition"] = f'attachment; filename="xc-session-{session.pk}.json"'
     result["Cache-Control"] = "no-store"
     return result
+
+
+@require_POST
+def delete_session(request, session_id):
+    receiver.status()
+    with transaction.atomic():
+        session = TrackerSession.objects.filter(pk=session_id).first()
+        if session is None:
+            return response({"error": "Session not found."}, 404)
+        if session.status == "open":
+            return response({"error": "An active session cannot be deleted. Disconnect and wait for it to finish saving."}, 409)
+        session.packets.all().delete()
+        session.delete()
+    return response({"deleted": session_id})

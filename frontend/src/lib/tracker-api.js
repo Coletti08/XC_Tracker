@@ -85,3 +85,12 @@ export async function downloadTrackerSession(id) {
   link.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+export async function deleteTrackerSession(id) {
+  const { csrf_token } = await request("/api/health/");
+  return request(`/api/tracker/sessions/${id}/delete/`, {
+    method: "POST",
+    body: {},
+    csrfToken: csrf_token,
+  });
+}

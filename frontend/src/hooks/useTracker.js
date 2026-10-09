@@ -46,7 +46,21 @@ export default function useTracker() {
     try {
       const data = await controlTracker(action, body);
       commandVersion.current += 1;
-      setSnapshot((previous) => ({ ...previous, receiver: data.receiver }));
+      setSnapshot((previous) => ({
+        ...previous,
+        receiver: data.receiver,
+        ...(action === "connect"
+          ? {
+              packets: [],
+              summary: {
+                packets: 0,
+                devices: 0,
+                positions: 0,
+                last_received_at: null,
+              },
+            }
+          : {}),
+      }));
       setError("");
     } finally {
       commandLock.current = false;

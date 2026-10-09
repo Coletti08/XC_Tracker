@@ -9,6 +9,7 @@ import Modal from "react-bootstrap/Modal";
 import Row from "react-bootstrap/Row";
 import Spinner from "react-bootstrap/Spinner";
 import Table from "react-bootstrap/Table";
+import TrackerSessions from "../components/TrackerSessions.jsx";
 import useTracker from "../hooks/useTracker.js";
 import { feet, speedMph, utc } from "../lib/format.js";
 import { getTrackerPorts } from "../lib/tracker-api.js";
@@ -108,6 +109,10 @@ export default function TrackerPage() {
     : receiver
       ? STATES[receiver.state] || STATES.disconnected
       : ["Loading", "secondary"];
+
+  useEffect(() => {
+    setDetail(null);
+  }, [receiver?.session_id, receiver?.state]);
 
   async function refreshPorts(signal) {
     setRefreshing(true);
@@ -236,7 +241,7 @@ export default function TrackerPage() {
 
       <Row className="g-3 mb-4">
         {[
-          ["Packets saved", summary?.packets?.toLocaleString() ?? "—"],
+          ["Session packets", summary?.packets?.toLocaleString() ?? "—"],
           ["Senders", summary?.devices?.toLocaleString() ?? "—"],
           ["Position packets", summary?.positions?.toLocaleString() ?? "—"],
           ["Last received (UTC)", time(summary?.last_received_at)],
@@ -254,7 +259,7 @@ export default function TrackerPage() {
 
       <Card>
         <Card.Header className="d-flex justify-content-between align-items-center gap-3">
-          <h2>Incoming packets</h2>
+          <h2>Current session</h2>
           <span className="small text-body-secondary">
             Newest first · {packets.length} shown
           </span>
@@ -336,7 +341,7 @@ export default function TrackerPage() {
             ) : receiver?.state === "connected" ? (
               "Waiting for the first packet."
             ) : (
-              "No packets received yet."
+              "No active capture."
             )}
           </Card.Body>
         )}
@@ -348,6 +353,11 @@ export default function TrackerPage() {
           </Card.Footer>
         )}
       </Card>
+
+      <TrackerSessions
+        sessionId={receiver?.session_id}
+        receiverState={receiver?.state}
+      />
 
       <PacketDetails packet={detail} onHide={() => setDetail(null)} />
     </>

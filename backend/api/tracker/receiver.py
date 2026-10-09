@@ -11,7 +11,7 @@ from meshtastic.serial_interface import SerialInterface
 from pubsub import pub
 from serial.tools import list_ports
 
-from api.models import TrackerPacket
+from api.models import TrackerPacket, TrackerSession
 from .packets import normalize_packet
 
 logger = logging.getLogger(__name__)
@@ -32,10 +32,12 @@ class TrackerReceiver:
     def __init__(self):
         self._lock = threading.RLock()
         self._stop = threading.Event()
+        self._recovered = False
         self._thread = None
         self._interface = None
         self._pending = Queue(maxsize=1000)
         self._status = {
+            "session_id": None,
             "state": "disconnected",
             "port": None,
             "connected_at": None,
@@ -45,8 +47,19 @@ class TrackerReceiver:
             "dropped_packets": 0,
         }
 
+    def _recover(self):
+        # Called lazily, after migrations, once per backend process. This app
+        # deliberately owns one receiver in one process (see README).
+        if not self._recovered:
+            TrackerSession.objects.filter(status="open").update(
+                status="interrupted", ended_at=timezone.now(),
+                error="Backend restarted before capture finished. End time is recovery time.",
+            )
+            self._recovered = True
+
     def status(self):
         with self._lock:
+            self._recover()
             return dict(self._status)
 
     def connect(self, port):
@@ -54,10 +67,12 @@ class TrackerReceiver:
             if self._thread and self._thread.is_alive():
                 raise ReceiverBusy("Disconnect the current receiver before connecting again.")
 
+            self._recover()
+            session = TrackerSession.objects.create(port=port)
             self._stop = threading.Event()
             self._pending = Queue(maxsize=1000)
             self._status.update(
-                state="connecting", port=port, connected_at=None, receiver_id=None,
+                session_id=session.pk, state="connecting", port=port, connected_at=None, receiver_id=None,
                 error=None, capture_error=None, dropped_packets=0,
             )
             self._thread = threading.Thread(
@@ -81,17 +96,18 @@ class TrackerReceiver:
             if interface is not self._interface or self._stop.is_set():
                 return
 
-        try:
-            values = normalize_packet(packet, interface)
-            values["received_at"] = timezone.now()
-            self._pending.put_nowait(values)
-        except Full:
-            with self._lock:
+            # Acceptance and enqueue share the disconnect lock, so the final
+            # queue drain cannot miss a callback that was already accepted.
+            try:
+                values = normalize_packet(packet, interface)
+                values["received_at"] = timezone.now()
+                values["session_id"] = self._status["session_id"]
+                self._pending.put_nowait(values)
+            except Full:
                 self._status["dropped_packets"] += 1
                 self._status["capture_error"] = "Packet queue is full. Some packets were not saved."
-        except Exception:
-            logger.exception("Could not decode a tracker packet")
-            with self._lock:
+            except Exception:
+                logger.exception("Could not decode a tracker packet")
                 self._status["dropped_packets"] += 1
                 self._status["capture_error"] = "A packet could not be decoded. Check the backend output."
 
@@ -154,8 +170,23 @@ class TrackerReceiver:
                 except Empty:
                     break
 
-            connections.close_all()
             with self._lock:
+                try:
+                    TrackerSession.objects.filter(pk=self._status["session_id"]).update(
+                        connected_at=self._status["connected_at"],
+                        ended_at=timezone.now(),
+                        receiver_id=self._status["receiver_id"],
+                        status="error" if failure else "completed",
+                        error=failure,
+                        capture_error=self._status["capture_error"],
+                        dropped_packets=self._status["dropped_packets"],
+                    )
+                except Exception:
+                    logger.exception("Could not finalize tracker session")
+                    self._status["capture_error"] = "Session could not be finalized. Check disk space and restart the backend."
+                finally:
+                    connections.close_all()
+
                 self._status.update(
                     state="error" if failure and not self._stop.is_set() else "disconnected",
                     error=failure if not self._stop.is_set() else None,

@@ -1,10 +1,10 @@
 import json
 
 from django.db.models import Count, Q
-from django.http import JsonResponse
+from django.http import JsonResponse, StreamingHttpResponse
 from django.views.decorators.http import require_GET, require_POST
 
-from api.models import TrackerPacket
+from api.models import TrackerPacket, TrackerSession
 from .receiver import ReceiverBusy, available_ports, receiver
 
 
@@ -58,8 +58,11 @@ def packets(request):
         return response({"error": "limit must be between 1 and 200."}, 400)
 
     # Capture a consistent upper bound while new packets arrive in the background.
-    latest = TrackerPacket.objects.first()
-    rows = TrackerPacket.objects.filter(id__lte=latest.pk) if latest else TrackerPacket.objects.none()
+    state = receiver.status()
+    active = state["state"] in {"connecting", "connected", "stopping"}
+    rows = TrackerPacket.objects.filter(session_id=state.get("session_id")) if active else TrackerPacket.objects.none()
+    latest = rows.first()
+    rows = rows.filter(id__lte=latest.pk) if latest else rows.none()
     summary = rows.aggregate(
         packets=Count("id"),
         devices=Count("node_id", distinct=True),
@@ -68,7 +71,54 @@ def packets(request):
     summary["last_received_at"] = latest.received_at.isoformat() if latest else None
 
     return response({
-        "receiver": receiver.status(),
+        "receiver": state,
         "summary": summary,
         "packets": [packet.as_dict() for packet in rows[:limit]],
     })
+
+
+@require_GET
+def sessions(request):
+    receiver.status()  # Recover unfinished captures after a backend restart.
+    rows = TrackerSession.objects.exclude(status="open").annotate(packet_count=Count("packets")).order_by("-id")
+    try:
+        before = request.GET.get("before")
+        if before is not None:
+            before = int(before)
+            if before < 1:
+                raise ValueError
+            rows = rows.filter(id__lt=before)
+    except ValueError:
+        return response({"error": "before must be a positive session ID."}, 400)
+
+    page = list(rows[:21])
+    return response({
+        "sessions": [session.as_dict() for session in page[:20]],
+        "next_before": page[19].pk if len(page) > 20 else None,
+    })
+
+
+@require_GET
+def download_session(request, session_id):
+    receiver.status()
+    session = TrackerSession.objects.annotate(packet_count=Count("packets")).filter(pk=session_id).first()
+    if session is None:
+        return response({"error": "Session not found."}, 404)
+    if session.status == "open":
+        return response({"error": "Disconnect and wait for the session to finish saving before downloading."}, 409)
+
+    def content():
+        # Closed sessions are immutable. Stream every saved reception, not just
+        # the latest rows shown on the live page, and retain original precision.
+        metadata = {"schema_version": 1, "session": session.as_dict()}
+        yield json.dumps(metadata, allow_nan=False)[:-1] + ', "packets": ['
+        separator = ""
+        for packet in session.packets.order_by("id").iterator(chunk_size=500):
+            yield separator + json.dumps(packet.as_dict(), allow_nan=False)
+            separator = ",\n"
+        yield "]}\n"
+
+    result = StreamingHttpResponse(content(), content_type="application/json")
+    result["Content-Disposition"] = f'attachment; filename="xc-session-{session.pk}.json"'
+    result["Cache-Control"] = "no-store"
+    return result

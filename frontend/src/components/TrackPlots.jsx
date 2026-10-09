@@ -1,11 +1,8 @@
 import { useId, useMemo } from "react";
 import { duration, speedMph } from "../lib/format.js";
 import { segmentFraction } from "../lib/playback.js";
-
-
 export function RoutePlot({ points, selected, cursorTime }) {
     const gridId = useId();
-
     const geometry = useMemo(() => {
         const origin = points[0];
         const longitudeScale = Math.max(0.001, Math.cos(origin.latitude * Math.PI / 180));
@@ -13,7 +10,6 @@ export function RoutePlot({ points, selected, cursorTime }) {
             x: (((point.longitude - origin.longitude + 540) % 360) - 180) * 111195 * longitudeScale,
             y: -(point.latitude - origin.latitude) * 111195,
         }));
-        
         const bounds = projected.reduce((box, point) => ({
             minX: Math.min(box.minX, point.x), maxX: Math.max(box.maxX, point.x),
             minY: Math.min(box.minY, point.y), maxY: Math.max(box.maxY, point.y),
@@ -26,15 +22,12 @@ export function RoutePlot({ points, selected, cursorTime }) {
         const path = positions.map((point, index) => `${points[index].break_before ? "M" : "L"}${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(" ");
         return { positions, path };
     }, [points]);
-
-
     const first = geometry.positions[0];
     const last = geometry.positions[geometry.positions.length - 1];
     const observed = geometry.positions[selected];
     const next = geometry.positions[selected + 1] ?? observed;
     const fraction = segmentFraction(points, selected, cursorTime ?? points[selected].elapsed_s);
     const current = { x: observed.x + (next.x - observed.x) * fraction, y: observed.y + (next.y - observed.y) * fraction };
-
     return (<svg className="route-plot" viewBox="0 0 800 360" role="img" aria-label={`GPS route with ${points.length} samples. Selected sample ${selected + 1}. North is up.`}>
       <defs>
         <pattern id={gridId} width="32" height="32" patternUnits="userSpaceOnUse">
@@ -53,7 +46,6 @@ export function RoutePlot({ points, selected, cursorTime }) {
       <circle data-testid="runner-marker" cx={current.x} cy={current.y} r="6" fill="#163e32" stroke="white" strokeWidth="2.5"/>
     </svg>);
 }
-
 export function SpeedPlot({ points, selected, cursorTime }) {
     const graph = useMemo(() => {
         const speeds = points.map(speedMph);
@@ -72,7 +64,6 @@ export function SpeedPlot({ points, selected, cursorTime }) {
         }).join(" ");
         return { max, total, path, hasSpeed: speeds.some((value) => value !== null) };
     }, [points]);
-    
     const value = speedMph(points[selected]);
     const x = 48 + (cursorTime ?? points[selected].elapsed_s) / graph.total * 724;
     if (!graph.hasSpeed)

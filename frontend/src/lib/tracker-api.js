@@ -60,3 +60,28 @@ export async function controlTracker(action, body = {}) {
     csrfToken: csrf_token,
   });
 }
+
+export function getTrackerSessions(before, signal) {
+  const query = before ? `?before=${before}` : "";
+  return request(`/api/tracker/sessions/${query}`, { signal });
+}
+
+export async function downloadTrackerSession(id) {
+  const response = await fetch(`/api/tracker/sessions/${id}/download/`, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || "Could not download this session.");
+  }
+
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `xc-session-${id}.json`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

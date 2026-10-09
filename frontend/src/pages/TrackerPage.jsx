@@ -9,7 +9,6 @@ import Modal from "react-bootstrap/Modal";
 import Row from "react-bootstrap/Row";
 import Spinner from "react-bootstrap/Spinner";
 import Table from "react-bootstrap/Table";
-import TrackerSessions from "../components/TrackerSessions.jsx";
 import useTracker from "../hooks/useTracker.js";
 import { feet, speedMph, utc } from "../lib/format.js";
 import { getTrackerPorts } from "../lib/tracker-api.js";
@@ -353,11 +352,6 @@ export default function TrackerPage() {
           </Card.Footer>
         )}
       </Card>
-
-      <TrackerSessions
-        sessionId={receiver?.session_id}
-        receiverState={receiver?.state}
-      />
 
       <PacketDetails packet={detail} onHide={() => setDetail(null)} />
     </>

@@ -15,6 +15,7 @@ import RecordingLayout from "./components/RecordingLayout.jsx";
 import DataPage from "./pages/DataPage.jsx";
 import PlaybackPage from "./pages/PlaybackPage.jsx";
 import RecordingsPage from "./pages/RecordingsPage.jsx";
+import TrackerSessions from "./components/TrackerSessions.jsx";
 import TrackerPage from "./pages/TrackerPage.jsx";
 import {
   RecordingsProvider,
@@ -38,7 +39,7 @@ function Dashboard() {
             </span>
             XC Tracker
           </Navbar.Brand>
-          <Nav>
+          <Nav className="flex-wrap">
             <Nav.Link
               as={Link}
               to="/recordings"
@@ -48,6 +49,13 @@ function Dashboard() {
             </Nav.Link>
             <Nav.Link as={Link} to="/tracker" active={pathname === "/tracker"}>
               Live Data
+            </Nav.Link>
+            <Nav.Link
+              as={Link}
+              to="/sessions"
+              active={pathname === "/sessions"}
+            >
+              Saved Sessions
             </Nav.Link>
           </Nav>
         </Container>
@@ -66,6 +74,7 @@ function Dashboard() {
           <Route path="/" element={<Navigate to="/recordings" replace />} />
           <Route path="/recordings" element={<RecordingsPage />} />
           <Route path="/tracker" element={<TrackerPage />} />
+          <Route path="/sessions" element={<TrackerSessions />} />
           <Route path="/recordings/:id" element={<RecordingLayout />}>
             <Route index element={<PlaybackPage />} />
             <Route path="data" element={<DataPage />} />

@@ -280,6 +280,26 @@ class SessionApiTests(TestCase):
         self.assertIsNone(second["next_before"])
         self.assertEqual(self.client.get("/api/tracker/sessions/?before=bad").status_code, 400)
 
+    def test_delete_removes_only_selected_session_and_requires_csrf(self):
+        closed = TrackerSession.objects.create(status="completed")
+        other = TrackerSession.objects.create(status="completed")
+        active = TrackerSession.objects.create()
+        for session in [closed, other, active]:
+            TrackerPacket.objects.create(session=session, node_id="!42", packet_type="TEXT_MESSAGE_APP", data={})
+        client = Client(enforce_csrf_checks=True)
+        url = f"/api/tracker/sessions/{closed.pk}/delete/"
+        self.assertEqual(client.get(url).status_code, 405)
+        self.assertEqual(client.post(url).status_code, 403)
+        token = client.get("/api/health/").json()["csrf_token"]
+        def delete(pk):
+            return client.post(f"/api/tracker/sessions/{pk}/delete/", HTTP_X_CSRFTOKEN=token)
+        self.assertEqual(delete(active.pk).status_code, 409)
+        self.assertEqual(delete(closed.pk).status_code, 200)
+        self.assertFalse(TrackerSession.objects.filter(pk=closed.pk).exists())
+        self.assertEqual(TrackerPacket.objects.count(), 2)
+        self.assertTrue(TrackerSession.objects.filter(pk=other.pk).exists())
+        self.assertEqual(delete(closed.pk).status_code, 404)
+
 
 class SessionMigrationTests(TransactionTestCase):
     def test_previous_packets_are_preserved(self):

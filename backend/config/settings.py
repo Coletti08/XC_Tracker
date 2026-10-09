@@ -1,5 +1,8 @@
 """Settings for local development on a laptop."""
 import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "xc-tracker-local-development-only")
 DEBUG = True
@@ -16,3 +19,11 @@ ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
 USE_TZ = True
 TIME_ZONE = "UTC"
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "tracker.sqlite3",
+        "OPTIONS": {"timeout": 20},
+    }
+}

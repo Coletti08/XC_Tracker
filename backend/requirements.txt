@@ -1,4 +1,5 @@
 Django==5.2.17
 asgiref==3.12.1
 sqlparse==0.6.0
+meshtastic==2.7.11
 

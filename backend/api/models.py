@@ -22,7 +22,9 @@ class TrackerSession(models.Model):
         return {
             "id": self.pk,
             "started_at": self.started_at.isoformat(),
-            "connected_at": self.connected_at.isoformat() if self.connected_at else None,
+            "connected_at": (
+                self.connected_at.isoformat() if self.connected_at else None
+            ),
             "ended_at": self.ended_at.isoformat() if self.ended_at else None,
             "port": self.port,
             "receiver_id": self.receiver_id,
@@ -37,7 +39,9 @@ class TrackerSession(models.Model):
 class TrackerPacket(models.Model):
     """One received event, including its original decoded payload."""
 
-    session = models.ForeignKey(TrackerSession, on_delete=models.PROTECT, related_name="packets")
+    session = models.ForeignKey(
+        TrackerSession, on_delete=models.PROTECT, related_name="packets"
+    )
     received_at = models.DateTimeField(default=timezone.now, db_index=True)
     node_id = models.CharField(max_length=80, db_index=True)
     packet_type = models.CharField(max_length=80)
@@ -55,3 +59,39 @@ class TrackerPacket(models.Model):
             "node_id": self.node_id,
             "packet_type": self.packet_type,
         }
+
+
+class Course(models.Model):
+    name = models.CharField(max_length=100)
+    geometry = models.JSONField()
+    created_at = models.DateTimeField(default=timezone.now)
+
+
+class Race(models.Model):
+    name = models.CharField(max_length=100)
+    course = models.ForeignKey(Course, on_delete=models.PROTECT)
+    course_snapshot = models.JSONField()
+    roster = models.JSONField(default=list)
+    settings = models.JSONField(default=dict)
+    mode = models.CharField(max_length=12, default="live")
+    state = models.CharField(max_length=12, default="draft")
+    started_at = models.DateTimeField(null=True)
+    ended_at = models.DateTimeField(null=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    simulation_s = models.FloatField(default=0)
+
+
+class RaceEvent(models.Model):
+    race = models.ForeignKey(Race, on_delete=models.CASCADE, related_name="events")
+    packet = models.ForeignKey(TrackerPacket, null=True, on_delete=models.PROTECT)
+    node_id = models.CharField(max_length=80)
+    elapsed_s = models.FloatField()
+    data = models.JSONField()
+
+    class Meta:
+        ordering = ["id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["race", "packet"], name="unique_race_packet"
+            )
+        ]

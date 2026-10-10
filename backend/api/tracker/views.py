@@ -127,7 +127,12 @@ def download_session(request, session_id):
 
 @require_POST
 def delete_session(request, session_id):
+    from api.racing.views import protect_captures
+    from api.models import RaceEvent
     receiver.status()
+    protect_captures()
+    if RaceEvent.objects.filter(packet__session_id=session_id).exists():
+        return response({"error": "This capture is used by a saved race and cannot be deleted."}, 409)
     with transaction.atomic():
         session = TrackerSession.objects.filter(pk=session_id).first()
         if session is None:

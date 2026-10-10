@@ -315,7 +315,7 @@ class SessionMigrationTests(TransactionTestCase):
             )
         finally:
             executor = MigrationExecutor(connection)
-            executor.migrate([("api", "0002_tracker_sessions")])
+            executor.migrate([("api", "0003_course_race_raceevent")])
         packet = TrackerPacket.objects.get(pk=old_packet.pk)
         self.assertEqual(packet.data["text"], "Keep me")
         self.assertEqual(packet.session.status, "legacy")

@@ -16,6 +16,9 @@ import DataPage from "./pages/DataPage.jsx";
 import PlaybackPage from "./pages/PlaybackPage.jsx";
 import RecordingsPage from "./pages/RecordingsPage.jsx";
 import TrackerSessions from "./components/TrackerSessions.jsx";
+import LiveLayout from "./components/LiveLayout.jsx";
+import RacesPage from "./pages/RacesPage.jsx";
+import RacePage from "./pages/RacePage.jsx";
 import TrackerPage from "./pages/TrackerPage.jsx";
 import {
   RecordingsProvider,
@@ -47,15 +50,19 @@ function Dashboard() {
             >
               Recordings
             </Nav.Link>
-            <Nav.Link as={Link} to="/tracker" active={pathname === "/tracker"}>
+            <Nav.Link
+              as={Link}
+              to="/tracker"
+              active={pathname.startsWith("/tracker")}
+            >
               Live Data
             </Nav.Link>
             <Nav.Link
               as={Link}
-              to="/sessions"
-              active={pathname === "/sessions"}
+              to="/races"
+              active={pathname.startsWith("/races")}
             >
-              Saved Sessions
+              Races
             </Nav.Link>
           </Nav>
         </Container>
@@ -73,8 +80,16 @@ function Dashboard() {
         <Routes>
           <Route path="/" element={<Navigate to="/recordings" replace />} />
           <Route path="/recordings" element={<RecordingsPage />} />
-          <Route path="/tracker" element={<TrackerPage />} />
-          <Route path="/sessions" element={<TrackerSessions />} />
+          <Route path="/tracker" element={<LiveLayout />}>
+            <Route index element={<TrackerPage />} />
+            <Route path="sessions" element={<TrackerSessions />} />
+          </Route>
+          <Route
+            path="/sessions"
+            element={<Navigate to="/tracker/sessions" replace />}
+          />
+          <Route path="/races" element={<RacesPage />} />
+          <Route path="/races/:id" element={<RacePage />} />
           <Route path="/recordings/:id" element={<RecordingLayout />}>
             <Route index element={<PlaybackPage />} />
             <Route path="data" element={<DataPage />} />

@@ -323,3 +323,11 @@ h2 {
     font-size: 11px;
   }
 }
+
+.race-map { width: 100%; display: block; touch-action: none; border-radius: 0 0 8px 8px; }
+.race-clock { font-size: 32px; font-variant-numeric: tabular-nums; font-weight: 650; }
+.race-leaderboard td { padding: 14px 12px; vertical-align: middle; min-width: 65px; }
+.runner-link { border: 0; background: none; padding: 0; color: #163e32; text-align: left; font-weight: 600; }
+.runner-link:hover { text-decoration: underline; }
+.runner-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+.app-navbar .app-container { flex-wrap: wrap; gap: 8px; }
